@@ -12,6 +12,9 @@ keywords = ["spinlock", "mutex", "rwlock"]
 description = "Spin-based synchronization primitives"
 
 [dependencies]
+compiler_builtins = {version = "0.1", optional = true}
+core = {version = "1.0", optional = true, package = "rustc-std-workspace-core"}
+alloc = {version = "1.0", optional = true, package = "rustc-std-workspace-alloc"}
 lock_api_crate = { package = "lock_api", version = "0.4", optional = true }
 
 [features]
@@ -19,3 +22,5 @@ default = ["ticket_mutex"]
 lock_api = ["lock_api_crate"]
 ticket_mutex = []
 std = []
+# Unstable feature to support being a libstd dependency
+rustc-dep-of-std = ["compiler_builtins", "core", "alloc"]
