@@ -60,7 +60,7 @@ pub struct SpinMutex<T: ?Sized> {
 /// A guard that provides mutable data access.
 ///
 /// When the guard falls out of scope it will release the lock.
-pub struct SpinMutexGuard<'a, T: ?Sized + 'a> {
+pub struct SpinMutexGuard<'a, T: ?Sized> {
     lock: &'a AtomicBool,
     data: &'a mut T,
 }
@@ -137,7 +137,7 @@ impl<T: ?Sized> SpinMutex<T> {
     /// }
     /// ```
     #[inline(always)]
-    pub fn lock(&self) -> SpinMutexGuard<T> {
+    pub fn lock(&self) -> SpinMutexGuard<'_, T> {
         // Can fail to lock even if the spinlock is not locked. May be more efficient than `try_lock`
         // when called in a loop.
         while self.lock.compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed).is_err() {
@@ -180,7 +180,7 @@ impl<T: ?Sized> SpinMutex<T> {
     /// assert!(maybe_guard2.is_none());
     /// ```
     #[inline(always)]
-    pub fn try_lock(&self) -> Option<SpinMutexGuard<T>> {
+    pub fn try_lock(&self) -> Option<SpinMutexGuard<'_, T>> {
         // The reason for using a strong compare_exchange is explained here:
         // https://github.com/Amanieu/parking_lot/pull/207#issuecomment-575869107
         if self.lock.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_ok() {

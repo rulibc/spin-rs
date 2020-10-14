@@ -100,7 +100,7 @@ unsafe impl<T: ?Sized + Send> Send for Mutex<T> {}
 ///
 /// [`TicketMutexGuard`]: ./struct.TicketMutexGuard.html
 /// [`SpinMutexGuard`]: ./struct.SpinMutexGuard.html
-pub struct MutexGuard<'a, T: 'a + ?Sized> {
+pub struct MutexGuard<'a, T: ?Sized> {
     #[cfg(feature = "ticket_mutex")]
     inner: TicketMutexGuard<'a, T>,
     #[cfg(not(feature = "ticket_mutex"))]
@@ -169,7 +169,7 @@ impl<T: ?Sized> Mutex<T> {
     /// }
     /// ```
     #[inline(always)]
-    pub fn lock(&self) -> MutexGuard<T> {
+    pub fn lock(&self) -> MutexGuard<'_, T> {
         MutexGuard {
             inner: self.inner.lock(),
         }
@@ -202,7 +202,7 @@ impl<T: ?Sized> Mutex<T> {
     /// assert!(maybe_guard2.is_none());
     /// ```
     #[inline(always)]
-    pub fn try_lock(&self) -> Option<MutexGuard<T>> {
+    pub fn try_lock(&self) -> Option<MutexGuard<'_, T>> {
         self.inner
             .try_lock()
             .map(|guard| MutexGuard { inner: guard })

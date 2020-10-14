@@ -68,7 +68,7 @@ pub struct TicketMutex<T: ?Sized> {
 /// A guard that protects some data.
 ///
 /// When the guard is dropped, the next ticket will be processed.
-pub struct TicketMutexGuard<'a, T: ?Sized + 'a> {
+pub struct TicketMutexGuard<'a, T: ?Sized> {
     next_serving: &'a AtomicUsize,
     ticket: usize,
     value: &'a mut T,
@@ -155,7 +155,7 @@ impl<T: ?Sized> TicketMutex<T> {
     /// }
     /// ```
     #[inline(always)]
-    pub fn lock(&self) -> TicketMutexGuard<T> {
+    pub fn lock(&self) -> TicketMutexGuard<'_, T> {
         let ticket = self.next_ticket.fetch_add(1, Ordering::Relaxed);
 
         while self.next_serving.load(Ordering::Acquire) != ticket {
@@ -202,7 +202,7 @@ impl<T: ?Sized> TicketMutex<T> {
     /// assert!(maybe_guard2.is_none());
     /// ```
     #[inline(always)]
-    pub fn try_lock(&self) -> Option<TicketMutexGuard<T>> {
+    pub fn try_lock(&self) -> Option<TicketMutexGuard<'_, T>> {
         let ticket = self
             .next_ticket
             .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |ticket| {

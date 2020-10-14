@@ -74,7 +74,7 @@ const WRITER: usize = 1;
 ///
 /// When the guard falls out of scope it will decrement the read count,
 /// potentially releasing the lock.
-pub struct RwLockReadGuard<'a, T: 'a + ?Sized> {
+pub struct RwLockReadGuard<'a, T: ?Sized> {
     inner: &'a RwLock<T>,
     data: &'a T,
 }
@@ -82,7 +82,7 @@ pub struct RwLockReadGuard<'a, T: 'a + ?Sized> {
 /// A guard that provides mutable data access.
 ///
 /// When the guard falls out of scope it will release the lock.
-pub struct RwLockWriteGuard<'a, T: 'a + ?Sized> {
+pub struct RwLockWriteGuard<'a, T: ?Sized> {
     inner: &'a RwLock<T>,
     data: &'a mut T,
 }
@@ -95,7 +95,7 @@ pub struct RwLockWriteGuard<'a, T: 'a + ?Sized> {
 /// when the lock is acquired.
 ///
 /// When the guard falls out of scope it will release the lock.
-pub struct RwLockUpgradableGuard<'a, T: 'a + ?Sized> {
+pub struct RwLockUpgradableGuard<'a, T: ?Sized> {
     inner: &'a RwLock<T>,
     data: &'a T,
 }
@@ -161,7 +161,7 @@ impl<T: ?Sized> RwLock<T> {
     /// }
     /// ```
     #[inline]
-    pub fn read(&self) -> RwLockReadGuard<T> {
+    pub fn read(&self) -> RwLockReadGuard<'_, T> {
         loop {
             match self.try_read() {
                 Some(guard) => return guard,
@@ -193,7 +193,7 @@ impl<T: ?Sized> RwLock<T> {
     /// }
     /// ```
     #[inline]
-    pub fn try_read(&self) -> Option<RwLockReadGuard<T>> {
+    pub fn try_read(&self) -> Option<RwLockReadGuard<'_, T>> {
         let value = self.lock.fetch_add(READER, Ordering::Acquire);
 
         // We check the UPGRADED bit here so that new readers are prevented when an UPGRADED lock is held.
@@ -262,7 +262,7 @@ impl<T: ?Sized> RwLock<T> {
     }
 
     #[inline(always)]
-    fn try_write_internal(&self, strong: bool) -> Option<RwLockWriteGuard<T>> {
+    fn try_write_internal(&self, strong: bool) -> Option<RwLockWriteGuard<'_, T>> {
         if compare_exchange(
             &self.lock,
             0,
@@ -301,7 +301,7 @@ impl<T: ?Sized> RwLock<T> {
     /// }
     /// ```
     #[inline]
-    pub fn write(&self) -> RwLockWriteGuard<T> {
+    pub fn write(&self) -> RwLockWriteGuard<'_, T> {
         loop {
             match self.try_write_internal(false) {
                 Some(guard) => return guard,
@@ -330,14 +330,14 @@ impl<T: ?Sized> RwLock<T> {
     /// }
     /// ```
     #[inline]
-    pub fn try_write(&self) -> Option<RwLockWriteGuard<T>> {
+    pub fn try_write(&self) -> Option<RwLockWriteGuard<'_, T>> {
         self.try_write_internal(true)
     }
 
     /// Obtain a readable lock guard that can later be upgraded to a writable lock guard.
     /// Upgrades can be done through the [`RwLockUpgradableGuard::upgrade`](RwLockUpgradableGuard::upgrade) method.
     #[inline]
-    pub fn upgradeable_read(&self) -> RwLockUpgradableGuard<T> {
+    pub fn upgradeable_read(&self) -> RwLockUpgradableGuard<'_, T> {
         loop {
             match self.try_upgradeable_read() {
                 Some(guard) => return guard,
@@ -348,7 +348,7 @@ impl<T: ?Sized> RwLock<T> {
 
     /// Tries to obtain an upgradeable lock guard.
     #[inline]
-    pub fn try_upgradeable_read(&self) -> Option<RwLockUpgradableGuard<T>> {
+    pub fn try_upgradeable_read(&self) -> Option<RwLockUpgradableGuard<'_, T>> {
         if self.lock.fetch_or(UPGRADED, Ordering::Acquire) & (WRITER | UPGRADED) == 0 {
             Some(RwLockUpgradableGuard {
                 inner: self,
